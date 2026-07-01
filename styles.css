@@ -1,0 +1,162 @@
+#browser-minimap-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 150px;
+  height: 100vh;
+  background: rgba(30, 30, 30, 0.95);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 2147483647;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
+  user-select: none;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  transition: transform 0.2s ease;
+}
+
+#browser-minimap-panel.hidden {
+  transform: translateX(100%);
+}
+
+#browser-minimap-panel.no-scroll,
+#browser-minimap-toggle.no-scroll {
+  display: none;
+}
+
+#browser-minimap-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: default;
+}
+
+#browser-minimap-canvas.thumb-hover {
+  cursor: grab;
+}
+
+#browser-minimap-canvas.thumb-grabbing,
+#browser-minimap-canvas.thumb-grabbing:active {
+  cursor: grabbing;
+}
+
+#browser-minimap-viewport {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  width: auto;
+  border: 1px solid rgba(66, 165, 245, 0.9);
+  background: rgba(66, 165, 245, 0.15);
+  box-sizing: border-box;
+  pointer-events: none;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: top 0.05s linear, height 0.05s linear, background 0.15s ease, border-color 0.15s ease;
+}
+
+#browser-minimap-viewport::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+#browser-minimap-panel:hover #browser-minimap-viewport {
+  background: rgba(66, 165, 245, 0.22);
+  border-color: rgba(100, 181, 246, 1);
+}
+
+#browser-minimap-viewport.dragging {
+  transition: none;
+  background: rgba(66, 165, 245, 0.35);
+  border-color: rgba(255, 255, 255, 0.9);
+}
+
+#browser-minimap-viewport.dragging::before {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+#browser-minimap-toggle {
+  position: fixed;
+  top: 50%;
+  right: 150px;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 56px;
+  border-radius: 5px 0 0 5px;
+  background: rgba(30, 30, 30, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-right: none;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2147483647;
+  opacity: 0.55;
+  overflow: hidden;
+  transition: width 0.25s ease, height 0.25s ease, right 0.2s ease, opacity 0.2s ease, background 0.2s ease, border-radius 0.25s ease;
+}
+
+#browser-minimap-toggle::before {
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+#browser-minimap-toggle:hover,
+#browser-minimap-toggle:focus-visible {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px 0 0 8px;
+  background: rgba(30, 30, 30, 0.95);
+  opacity: 1;
+}
+
+#browser-minimap-toggle:hover::before,
+#browser-minimap-toggle:focus-visible::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+#browser-minimap-panel.hidden + #browser-minimap-toggle,
+#browser-minimap-panel.no-scroll + #browser-minimap-toggle {
+  right: 0;
+  border-radius: 4px 0 0 4px;
+}
+
+#browser-minimap-panel.hidden + #browser-minimap-toggle:hover,
+#browser-minimap-panel.no-scroll + #browser-minimap-toggle:hover,
+#browser-minimap-panel.hidden + #browser-minimap-toggle:focus-visible,
+#browser-minimap-panel.no-scroll + #browser-minimap-toggle:focus-visible {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px 0 0 8px;
+}
+
+#browser-minimap-toggle:hover {
+  opacity: 1;
+  background: rgba(50, 50, 50, 0.95);
+}
+
+#browser-minimap-toggle.hidden-toggle::before {
+  content: "☰";
+}
+
+#browser-minimap-toggle:not(.hidden-toggle)::before {
+  content: "✕";
+}
+
+@media print {
+  #browser-minimap-panel,
+  #browser-minimap-toggle {
+    display: none !important;
+  }
+}
