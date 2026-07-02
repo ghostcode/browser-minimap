@@ -11,14 +11,16 @@
   user-select: none;
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  transition: transform 0.2s ease;
+  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease;
 }
 
-#browser-minimap-panel.hidden {
+#browser-minimap-panel.hidden,
+#browser-minimap-panel.no-scroll {
   transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
 }
 
-#browser-minimap-panel.no-scroll,
 #browser-minimap-toggle.no-scroll {
   display: none;
 }
@@ -102,7 +104,7 @@
   z-index: 2147483647;
   opacity: 0.55;
   overflow: hidden;
-  transition: width 0.25s ease, height 0.25s ease, right 0.2s ease, opacity 0.2s ease, background 0.2s ease, border-radius 0.25s ease;
+  transition: width 0.25s ease, height 0.25s ease, right 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.2s ease, background 0.2s ease, border-radius 0.25s ease;
 }
 
 #browser-minimap-toggle::before {
@@ -129,7 +131,7 @@
 #browser-minimap-panel.hidden + #browser-minimap-toggle,
 #browser-minimap-panel.no-scroll + #browser-minimap-toggle {
   right: 0;
-  border-radius: 4px 0 0 4px;
+  border-radius: 5px 0 0 5px;
 }
 
 #browser-minimap-panel.hidden + #browser-minimap-toggle:hover,

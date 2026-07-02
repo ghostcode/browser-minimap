@@ -90,11 +90,11 @@
         if (typeof res.minimapVisible === 'boolean') {
           setVisibility(res.minimapVisible);
         } else {
-          setVisibility(true);
+          setVisibility(false); // default hidden until user enables it
         }
       });
     } catch (e) {
-      setVisibility(true);
+      setVisibility(false);
     }
   }
 
