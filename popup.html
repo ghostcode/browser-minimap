@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Browser Minimap</title>
   <style>
     body {
-      width: 240px;
+      width: 280px;
       margin: 0;
       padding: 16px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -46,13 +46,117 @@
     button:hover {
       background: #1e88e5;
     }
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+    .section {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #333;
+    }
+    .section h2 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+    }
+    #current-site {
+      margin: 0 0 8px 0;
+      font-size: 12px;
+      color: #aaa;
+      word-break: break-all;
+    }
+    #add-current-btn {
+      margin-bottom: 12px;
+      background: #ef5350;
+    }
+    #add-current-btn:hover {
+      background: #d32f2f;
+    }
+    #add-current-btn.remove-mode {
+      background: #66bb6a;
+    }
+    #add-current-btn.remove-mode:hover {
+      background: #388e3c;
+    }
+    #disabled-sites-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+    #disabled-sites-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 8px;
+      margin-bottom: 4px;
+      border-radius: 6px;
+      background: #2a2a2a;
+      font-size: 12px;
+      word-break: break-all;
+    }
+    #disabled-sites-list li:last-child {
+      margin-bottom: 0;
+    }
+    #disabled-sites-list .site-text {
+      flex: 1;
+      margin-right: 8px;
+      color: #e0e0e0;
+    }
+    #disabled-sites-list .remove-btn {
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      flex: 0 0 20px;
+      border-radius: 50%;
+      background: #444;
+      color: #fff;
+      font-size: 12px;
+      line-height: 20px;
+      text-align: center;
+      transition: background 0.2s ease;
+    }
+    #disabled-sites-list .remove-btn:hover {
+      background: #ef5350;
+    }
+    .empty-tip {
+      margin: 0;
+      padding: 8px;
+      border-radius: 6px;
+      background: #2a2a2a;
+      font-size: 12px;
+      color: #888;
+      text-align: center;
+    }
+    .disabled-notice {
+      margin-top: 12px;
+      padding: 8px;
+      border-radius: 6px;
+      background: #3e2723;
+      color: #ffcc80;
+      font-size: 12px;
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
   <h1>Browser Minimap</h1>
   <p>拖动右侧 minimap 中的蓝色视口框来快速滚动页面。</p>
-  <p>点击 <span class="shortcut">☰</span> 或 <span class="shortcut">✕</span> 按钮可显示/隐藏 minimap。</p>
-  <button id="toggle-btn">在当前页面切换 Minimap</button>
+  <div id="toggle-section">
+    <button id="toggle-btn">展开</button>
+  </div>
+
+  <div class="section">
+    <h2>在指定网站禁用</h2>
+    <p id="current-site">当前网站：加载中...</p>
+    <button id="add-current-btn">禁用当前网站</button>
+    <ul id="disabled-sites-list"></ul>
+    <div id="disabled-notice" class="disabled-notice" style="display: none;">当前页面已匹配禁用规则，Minimap 不会显示。</div>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>

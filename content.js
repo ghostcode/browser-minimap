@@ -23,24 +23,119 @@
   let visible = true;
   let isUpdatingMinimap = false;
   let isBuildingMap = false;
+  let onWindowScroll, onWindowResize, onCanvasMouseDown, onCanvasMouseLeave;
+  let onDocumentMouseMove, onDocumentMouseUp, onCanvasTouchStart;
+  let onDocumentTouchMove, onDocumentTouchEnd, onToggleClick;
+  const CURRENT_URL = location.href;
+  let disabledSites = [];
+
+  function isUrlDisabled(url, patterns) {
+    if (!patterns || !patterns.length) return false;
+    for (const raw of patterns) {
+      const pattern = raw.trim();
+      if (!pattern) continue;
+      if (pattern.includes('*')) {
+        try {
+          const regex = new RegExp('^' + pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$');
+          if (regex.test(url)) return true;
+        } catch (e) {
+          continue;
+        }
+      } else if (url.includes(pattern)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function loadDisabledSites(callback) {
+    try {
+      chrome.storage?.local?.get?.(['disabledSites'], (res) => {
+        disabledSites = res?.disabledSites || [];
+        if (callback) callback(disabledSites);
+      });
+    } catch (e) {
+      disabledSites = [];
+      if (callback) callback(disabledSites);
+    }
+  }
 
   function init() {
-    if (window.__browserMinimapInitialized) return;
     if (document.getElementById('browser-minimap-panel')) return;
     if (!document.body) {
       document.addEventListener('DOMContentLoaded', init);
       return;
     }
 
+    loadDisabledSites((sites) => {
+      if (isUrlDisabled(CURRENT_URL, sites)) {
+        destroy();
+        return;
+      }
+      doInit();
+    });
+  }
+
+  function doInit() {
+    if (window.__browserMinimapInitialized) return;
+    if (document.getElementById('browser-minimap-panel')) return;
+
     window.__browserMinimapInitialized = true;
 
     createUI();
+    // Start hidden by default; loadVisibility will decide whether to show it
+    panel.classList.add('hidden');
+    toggle.classList.add('hidden-toggle');
+    visible = false;
+
     loadVisibility();
-    buildMap();
-    autoHide();
-    updateViewport();
     bindEvents();
     observeMutations();
+
+    window.__browserMinimap = {
+      show: () => setVisibility(true),
+      hide: () => setVisibility(false),
+      toggle: () => setVisibility(panel?.classList.contains('hidden')),
+      destroy
+    };
+  }
+
+  function destroy() {
+    if (mutationObserver) {
+      mutationObserver.disconnect();
+      mutationObserver = null;
+    }
+    clearTimeout(rebuildTimer);
+
+    if (onWindowScroll) window.removeEventListener('scroll', onWindowScroll, { passive: true });
+    if (onWindowResize) window.removeEventListener('resize', onWindowResize, { passive: true });
+    if (canvas && onCanvasMouseDown) canvas.removeEventListener('mousedown', onCanvasMouseDown);
+    if (canvas && onCanvasMouseLeave) canvas.removeEventListener('mouseleave', onCanvasMouseLeave);
+    if (onDocumentMouseMove) document.removeEventListener('mousemove', onDocumentMouseMove);
+    if (onDocumentMouseUp) document.removeEventListener('mouseup', onDocumentMouseUp);
+    if (canvas && onCanvasTouchStart) canvas.removeEventListener('touchstart', onCanvasTouchStart, { passive: false });
+    if (onDocumentTouchMove) document.removeEventListener('touchmove', onDocumentTouchMove, { passive: false });
+    if (onDocumentTouchEnd) document.removeEventListener('touchend', onDocumentTouchEnd);
+    if (toggle && onToggleClick) toggle.removeEventListener('click', onToggleClick);
+
+    if (panel) {
+      panel.remove();
+      panel = null;
+    }
+    if (toggle) {
+      toggle.remove();
+      toggle = null;
+    }
+    canvas = null;
+    ctx = null;
+    viewport = null;
+    isDragging = false;
+    window.__browserMinimapInitialized = false;
+    try {
+      delete window.__browserMinimap;
+    } catch (e) {
+      window.__browserMinimap = undefined;
+    }
   }
 
   function createUI() {
@@ -74,6 +169,7 @@
         buildMap();
         updateViewport();
       }
+      autoHide();
       try {
         chrome.storage?.local?.set?.({ minimapVisible: show });
       } catch (e) {
@@ -275,23 +371,37 @@
   }
 
   function bindEvents() {
-    window.addEventListener('scroll', updateViewport, { passive: true });
-    window.addEventListener('resize', scheduleRebuild, { passive: true });
+    onWindowScroll = updateViewport;
+    onWindowResize = scheduleRebuild;
+    onCanvasMouseDown = onPointerDown;
+    onCanvasMouseLeave = () => {
+      if (canvas) canvas.classList.remove('thumb-hover', 'thumb-grabbing');
+    };
+    onDocumentMouseMove = onPointerMove;
+    onDocumentMouseUp = onPointerUp;
+    onCanvasTouchStart = onTouchStart;
+    onDocumentTouchMove = onTouchMove;
+    onDocumentTouchEnd = onPointerUp;
+    onToggleClick = () => setVisibility(!visible);
 
-    canvas.addEventListener('mousedown', onPointerDown);
-    canvas.addEventListener('mouseleave', () => canvas.classList.remove('thumb-hover', 'thumb-grabbing'));
-    document.addEventListener('mousemove', onPointerMove);
-    document.addEventListener('mouseup', onPointerUp);
+    window.addEventListener('scroll', onWindowScroll, { passive: true });
+    window.addEventListener('resize', onWindowResize, { passive: true });
 
-    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-    document.addEventListener('touchmove', onTouchMove, { passive: false });
-    document.addEventListener('touchend', onPointerUp);
+    canvas.addEventListener('mousedown', onCanvasMouseDown);
+    canvas.addEventListener('mouseleave', onCanvasMouseLeave);
+    document.addEventListener('mousemove', onDocumentMouseMove);
+    document.addEventListener('mouseup', onDocumentMouseUp);
 
-    toggle.addEventListener('click', () => setVisibility(!visible));
+    canvas.addEventListener('touchstart', onCanvasTouchStart, { passive: false });
+    document.addEventListener('touchmove', onDocumentTouchMove, { passive: false });
+    document.addEventListener('touchend', onDocumentTouchEnd);
+
+    toggle.addEventListener('click', onToggleClick);
   }
 
   function onPointerDown(e) {
     if (e.button !== 0) return;
+    if (!panel || !viewport || !canvas) return;
     e.preventDefault();
     e.stopPropagation();
 
@@ -318,6 +428,7 @@
       updateCursor(e);
       return;
     }
+    if (!panel || !viewport) return;
     e.preventDefault();
     e.stopPropagation();
 
@@ -339,6 +450,7 @@
   }
 
   function updateCursor(e) {
+    if (!panel || !viewport || !canvas) return;
     const panelRect = panel.getBoundingClientRect();
     const vpRect = viewport.getBoundingClientRect();
     const clickY = e.clientY - panelRect.top;
@@ -349,6 +461,7 @@
   }
 
   function onTouchStart(e) {
+    if (!panel || !viewport || !canvas) return;
     const touch = e.touches[0];
     const panelRect = panel.getBoundingClientRect();
     const vpRect = viewport.getBoundingClientRect();
@@ -369,6 +482,7 @@
 
   function onTouchMove(e) {
     if (!isDragging) return;
+    if (!panel || !viewport) return;
     e.preventDefault();
 
     const touch = e.touches[0];
@@ -391,11 +505,12 @@
 
   function onPointerUp() {
     isDragging = false;
-    viewport.classList.remove('dragging');
-    canvas.classList.remove('thumb-grabbing', 'thumb-hover');
+    if (viewport) viewport.classList.remove('dragging');
+    if (canvas) canvas.classList.remove('thumb-grabbing', 'thumb-hover');
   }
 
   function scrollToPanelY(clientY) {
+    if (!panel) return;
     const rect = panel.getBoundingClientRect();
     const relativeY = clientY - rect.top;
     const ratio = relativeY / rect.height;
@@ -433,5 +548,38 @@
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
+  }
+
+  try {
+    chrome.storage?.onChanged?.addListener((changes, area) => {
+      if (area !== 'local') return;
+      if (changes.disabledSites) {
+        disabledSites = changes.disabledSites.newValue || [];
+        if (isUrlDisabled(CURRENT_URL, disabledSites)) {
+          destroy();
+        } else if (!window.__browserMinimapInitialized) {
+          doInit();
+        }
+      }
+    });
+  } catch (e) {
+    // ignore
+  }
+
+  try {
+    chrome.runtime?.onMessage?.addListener((request, sender, sendResponse) => {
+      if (request.type === 'updateDisabledSites') {
+        disabledSites = request.sites || [];
+        if (isUrlDisabled(CURRENT_URL, disabledSites)) {
+          destroy();
+        } else if (!window.__browserMinimapInitialized) {
+          doInit();
+        }
+        sendResponse({ ok: true });
+      }
+      return true;
+    });
+  } catch (e) {
+    // ignore
   }
 })();
